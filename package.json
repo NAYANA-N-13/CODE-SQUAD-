@@ -1,0 +1,21 @@
+{
+  "name": "code-squad",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAYANA-N-13/CODE-SQUAD-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/NAYANA-N-13/CODE-SQUAD-/issues"
+  },
+  "homepage": "https://github.com/NAYANA-N-13/CODE-SQUAD-#readme"
+}

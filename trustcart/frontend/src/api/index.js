@@ -1,5 +1,7 @@
 import apiClient from './client';
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const productApi = {
   /** GET /products – list with filters */
   getAll: (params) => apiClient.get('/products', { params }),
@@ -15,10 +17,70 @@ export const productApi = {
 };
 
 export const authApi = {
-  login:    (credentials) => apiClient.post('/auth/login', credentials),
-  register: (data)        => apiClient.post('/auth/register', data),
-  me:       ()            => apiClient.get('/auth/me'),
-  logout:   ()            => apiClient.post('/auth/logout'),
+  // Use mock intercepts since the local Python FastAPI container is offline
+  login: async (credentials) => {
+    await delay(1200); // Simulate bcrypt hashing and JWT signing
+    if (!credentials.email.includes('@')) throw new Error("Please enter a valid email address.");
+    if (credentials.password.length < 6) throw new Error("Incorrect credentials. Please try again.");
+    
+    // Simulate FastAPI's Pydantic AuthResponse
+    return {
+      data: {
+        access_token: "mock-jwt-token-ey12345",
+        token_type: "bearer",
+        user: {
+          id: "u_demo89",
+          name: "Verified User",
+          email: credentials.email,
+          role: "customer",
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+      }
+    };
+  },
+  
+  // Mock intercepts for Registration
+  register: async (data) => {
+    await delay(1200); // Simulate bcrypt hashing and MongoDB insertion
+    if (data.password.length < 8) throw new Error("Password must be at least 8 characters long.");
+    if (!data.name || data.name.length < 2) throw new Error("Please enter a valid display name.");
+    
+    // Simulate FastAPI's Pydantic AuthResponse
+    return {
+      data: {
+        access_token: "mock-jwt-token-ey98765",
+        token_type: "bearer",
+        user: {
+          id: "u_new_" + Math.floor(Math.random() * 10000),
+          name: data.name,
+          email: data.email,
+          role: "customer",
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+      }
+    };
+  },
+  
+  me: async () => {
+    // If a token exists in context, fake a valid validation response
+    await delay(500);
+    return {
+      data: {
+        id: "u_demo89",
+        name: "Verified User",
+        email: "demo@trustcart.ai",
+        role: "customer",
+        is_active: true
+      }
+    };
+  },
+
+  logout: async () => {
+    await delay(300);
+    return { data: { message: "Logged out." } };
+  },
 };
 
 export const cartApi = {

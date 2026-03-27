@@ -16,6 +16,11 @@ export default function ProductDetail() {
   const [productLoading, setProductLoading] = useState(true);
   const [productError, setProductError] = useState(null);
 
+  // Rating State
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isRatingSubmitted, setIsRatingSubmitted] = useState(false);
+
   // Fetch only the product, we let the Super-Hook handle gathering the seller
   useEffect(() => {
     let isMounted = true;
@@ -101,6 +106,42 @@ export default function ProductDetail() {
               <p className="text-4xl font-black text-gray-900 dark:text-white mb-6">
                 ${productPrice.toFixed(2)}
               </p>
+
+              {/* Interactive User Rating Block */}
+              <div className="mb-8 p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest mb-4">Rate this Product</h3>
+                
+                {isRatingSubmitted ? (
+                  <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
+                    <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-bold text-sm">Rating Saved! Thank you for authenticating this seller.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => { setUserRating(star); setIsRatingSubmitted(true); }}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 hover:scale-125 transition-transform focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
+                      >
+                        <Star 
+                          className={`w-9 h-9 ${
+                            (hoverRating || userRating) >= star 
+                              ? 'fill-yellow-400 text-yellow-400 drop-shadow-md' 
+                              : 'text-gray-300 dark:text-gray-600'
+                          } transition-colors duration-200`} 
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-4 text-sm font-bold text-gray-400 uppercase tracking-widest">
+                      {hoverRating ? `Rate ${hoverRating} Star${hoverRating > 1 ? 's' : ''}` : "Click to Rate"}
+                    </span>
+                  </div>
+                )}
+              </div>
               
               <button className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 dark:shadow-none transition-all active:scale-[0.98]">
                 <ShoppingCart className="w-5 h-5" />

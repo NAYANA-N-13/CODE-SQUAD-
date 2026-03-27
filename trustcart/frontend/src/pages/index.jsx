@@ -1,8 +1,16 @@
 import Home from './Home';
 import ProductDetail from './ProductDetail';
 import SellerProfile from './SellerProfile';
+import Login from './Login';
+import Register from './Register';
 
-export { Home as HomePage, ProductDetail as ProductDetailPage, SellerProfile as SellerProfilePage };
+export { 
+  Home as HomePage, 
+  ProductDetail as ProductDetailPage, 
+  SellerProfile as SellerProfilePage,
+  Login as LoginPage,
+  Register as RegisterPage
+};
 
 export function ProductsPage() {
   return <div className="max-w-7xl mx-auto px-4 py-10"><h1 className="font-display font-bold text-3xl mb-6">All Products</h1></div>;
@@ -14,14 +22,6 @@ export function CartPage() {
 
 export function CheckoutPage() {
   return <div className="max-w-7xl mx-auto px-4 py-10"><h1 className="font-display font-bold text-3xl">Checkout</h1></div>;
-}
-
-export function LoginPage() {
-  return <div className="min-h-screen flex items-center justify-center"><h1 className="font-display font-bold text-3xl">Sign In</h1></div>;
-}
-
-export function RegisterPage() {
-  return <div className="min-h-screen flex items-center justify-center"><h1 className="font-display font-bold text-3xl">Create Account</h1></div>;
 }
 
 export function AccountPage() {
