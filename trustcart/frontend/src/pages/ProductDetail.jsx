@@ -5,7 +5,7 @@ import TrustScore from '@components/TrustScore';
 import RiskBadge from '@components/RiskBadge';
 import ErrorState from '@components/ErrorState';
 import { ProductSkeleton } from '@components/Skeletons';
-import { getProductById } from '../services/api';
+import { getProductById, vouchSeller } from '../services/api';
 import { generateRiskFlags } from '../utils/trustHelpers';
 import { useSeller } from '../hooks/useSeller';
 
@@ -20,6 +20,8 @@ export default function ProductDetail() {
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [isRatingSubmitted, setIsRatingSubmitted] = useState(false);
+  const [vouchStatus, setVouchStatus] = useState(null);
+  const [reportStatus, setReportStatus] = useState(null);
 
   // Fetch only the product, we let the Super-Hook handle gathering the seller
   useEffect(() => {
@@ -44,8 +46,23 @@ export default function ProductDetail() {
   }, [id]);
 
   // Pass control to the Global Cache layer
-  const sellerId = product?.seller_id || (product?.seller && product.seller.id) || 's1';
-  const { seller, aiTrust, loading: sellerLoading, error: sellerError, retry: retrySeller } = useSeller(product ? sellerId : null);
+  const sellerId = product?.seller_id || product?.seller?.id || null;
+  const { seller, aiTrust, loading: sellerLoading, error: sellerError, retry: retrySeller } = useSeller(sellerId);
+
+  const handleVouch = async (amount) => {
+    setVouchStatus('pending');
+    try {
+      await vouchSeller(sellerId, `vouch-${Date.now()}`, amount);
+      setVouchStatus(`Vouched with ${amount} points. Refresh to see updated trust score.`);
+    } catch (err) {
+      setVouchStatus(`Vouch failed: ${err.message || 'unknown error'}`);
+    }
+  };
+
+  const handleReport = () => {
+    // For this demo flow we keep reports as local state-only; backend extension is possible.
+    setReportStatus('Seller reported. Trust score may adjust after moderation review.');
+  };
 
   const isLoading = productLoading || (!productError && sellerLoading);
   const activeError = productError || sellerError;
@@ -60,11 +77,15 @@ export default function ProductDetail() {
 
   // Safely destruct our remote payloads with fallbacks if backend model lacks properties
   const productPrice = product?.price || 0;
-  const sellerName = seller.name || seller.username || 'System Merchant';
-  const trustScore = aiTrust?.score ?? 0;
-  const trustTier = aiTrust?.tier ?? 'Untrusted';
-  const riskFlags = generateRiskFlags(aiTrust?.metrics, aiTrust?.aiStats);
-  const explanation = aiTrust?.explanation || "AI explanation unavailable at this time.";
+  const sellerName = seller?.name || seller?.username || 'System Merchant';
+  const trustScore = seller?.trust_score ?? aiTrust?.score ?? 0;
+  const trustTier = aiTrust?.tier ?? (trustScore >= 80 ? 'Highly Trusted' : trustScore >= 60 ? 'Trusted' : trustScore >= 40 ? 'Moderate' : 'Low Trust');
+  const riskMetrics = aiTrust?.metrics || {
+    account_age_days: seller?.account_age_days ?? 0,
+    delivery_success_rate: seller?.delivery_success_rate ?? 100,
+  };
+  const riskFlags = generateRiskFlags(riskMetrics, aiTrust?.aiStats);
+  const explanation = aiTrust?.explanation ?? (seller?.trust_score != null ? `Seller trust score is currently ${seller.trust_score}` : 'AI explanation unavailable at this time.');
 
   const getVerdict = (score) => {
     if (score >= 80) return { text: "Safe to Buy", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:border-emerald-800/50 dark:text-emerald-400", icon: <ShieldCheck className="w-8 h-8" /> };
@@ -160,7 +181,7 @@ export default function ProductDetail() {
                   <h3 className="text-sm font-bold uppercase tracking-wider opacity-80 mb-1">Sold By</h3>
                   <div className="flex items-center gap-2">
                     <User className="w-5 h-5 text-gray-400" />
-                    <Link to={`/seller/${seller.id}`} className="text-xl font-bold text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
+                    <Link to={`/seller/${seller?.id || seller?.seller_id || seller?.sellerId || sellerId}`} className="text-xl font-bold text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
                       {sellerName}
                     </Link>
                   </div>
@@ -184,6 +205,36 @@ export default function ProductDetail() {
               <div className="w-full bg-gray-50 dark:bg-gray-900 rounded-lg py-2 px-4 text-center border border-gray-100 dark:border-gray-700">
                 <span className="font-bold text-lg text-gray-700 dark:text-gray-300">{trustTier}</span>
               </div>
+
+              {trustScore < 40 && (
+                <div className="mt-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200">
+                  <strong>Safety Warning:</strong> This seller has a low trust rating. Avoid upfront payments and report suspicious behavior.
+                </div>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleVouch(10)}
+                  className="py-2 px-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all"
+                >
+                  Vouch (+10)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVouch(-10)}
+                  className="py-2 px-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-semibold transition-all"
+                >
+                  Report (-10)
+                </button>
+              </div>
+
+              {vouchStatus && (
+                <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{vouchStatus}</p>
+              )}
+              {reportStatus && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400 font-medium">{reportStatus}</p>
+              )}
             </div>
 
             {/* Section 3: Risk Indicators */}

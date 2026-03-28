@@ -22,14 +22,20 @@ export default function SellerProfile() {
     return <ErrorState message={error} onRetry={retry} />;
   }
 
-  // Safe defaults
-  const trustScore = aiTrust?.score ?? 0;
-  const trustTier = aiTrust?.tier ?? 'Unknown';
-  const metrics = aiTrust?.metrics || { ratingScore: 0, sentimentScore: 0, deliveryScore: 0, ageScore: 0 };
-  const aiStats = aiTrust?.aiStats || { genuinePct: 100, suspiciousPct: 0, explanation: "No data available." };
+  // Safe defaults. Prefer DB-provided trust score then AI computed score.
+  const trustScore = seller?.trust_score ?? aiTrust?.score ?? 0;
+  const trustTier = aiTrust?.tier ?? (trustScore >= 80 ? 'Highly Trusted' : trustScore >= 60 ? 'Trusted' : trustScore >= 40 ? 'Moderate' : 'Low Trust');
+  const metrics = aiTrust?.metrics || {
+    ratingScore: seller?.rating ? (seller.rating / 5 * 30) : 0,
+    sentimentScore: 0,
+    deliveryScore: seller?.delivery_success_rate ? (seller.delivery_success_rate / 100 * 20) : 0,
+    ageScore: seller?.account_age_days ? (Math.min(seller.account_age_days / 730, 1) * 20) : 0,
+  };
+  const aiStats = aiTrust?.aiStats || { suspiciousPct: 0, explanation: 'No data available.' };
   const riskFlags = generateRiskFlags(metrics, aiStats);
   const historicalRatings = aiTrust?.historicalRatings || [];
   const products = aiTrust?.products || [];
+
 
   // Helper for metric colors
   const getMetricTheme = (score, max) => {
@@ -55,7 +61,7 @@ export default function SellerProfile() {
             <div>
               <div className="flex items-center gap-3 mb-1.5 border-b border-gray-100 dark:border-gray-700 pb-2">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">{seller.name}</h1>
-                {seller.is_verified ? (
+                {seller?.verified ? (
                   <span className="bg-green-100 text-green-700 p-1.5 rounded-full" title="TrustCart Verified">
                     <ShieldCheck className="w-5 h-5" />
                   </span>
@@ -66,8 +72,8 @@ export default function SellerProfile() {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">
-                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Joined {seller.joined || 'Recently'}</span>
-                <span className="flex items-center gap-1.5"><Box className="w-4 h-4" /> {products.length} Active Listings</span>
+                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Joined {seller?.account_age_days ? `${Math.floor(seller.account_age_days / 30)} months ago` : 'Recently'}</span>
+                <span className="flex items-center gap-1.5"><Box className="w-4 h-4" /> {seller?.review_count ?? 0} Reviews / {products.length} Active Listings</span>
               </div>
             </div>
           </div>

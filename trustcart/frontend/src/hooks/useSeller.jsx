@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { getSellerData, analyzeReviews } from '../services/api';
+import { getSellerData, analyzeReviews, getSellerScore } from '../services/api';
 
 // Create a globally persistent dictionary cache context
 const SellerContext = createContext();
@@ -13,18 +13,47 @@ export const SellerProvider = ({ children }) => {
     if (cache[sellerId]) {
       return cache[sellerId];
     }
-    
+
     // 2. Heavy concurrent network execution if data is missing
-    const [sellerData, aiTrustData] = await Promise.all([
+    const [sellerData, reviewAnalysis, scoreData] = await Promise.all([
       getSellerData(sellerId),
-      analyzeReviews(sellerId)
+      analyzeReviews(sellerId),
+      getSellerScore(sellerId),
     ]);
-    
-    const payload = { seller: sellerData, aiTrust: aiTrustData };
-    
+
+    const normalizedAITrust = {
+      score: scoreData?.trust_score ?? sellerData?.trust_score ?? 0,
+      tier: scoreData?.tier ?? 'Unknown',
+      metrics: {
+        ratingScore: scoreData?.score_breakdown?.rating_score?.value ?? 0,
+        sentimentScore: scoreData?.score_breakdown?.sentiment_score?.value ?? 0,
+        deliveryScore: scoreData?.score_breakdown?.delivery_score?.value ?? 0,
+        ageScore: scoreData?.score_breakdown?.account_age_score?.value ?? 0,
+      },
+      aiStats: {
+        suspiciousPct: reviewAnalysis?.suspicious_percentage ?? 0,
+        explanation: reviewAnalysis?.explanation || reviewAnalysis?.message || 'No analysis data available.',
+      },
+      explanation: reviewAnalysis?.explanation || scoreData?.tier || 'No explanation available.',
+      historicalRatings: reviewAnalysis?.distribution ? Object.entries(reviewAnalysis.distribution).map(([key, value]) => ({ name: key, value: value?.percent ?? 0 })) : [],
+      products: reviewAnalysis?.products || [],
+      raw: { reviewAnalysis, scoreData },
+    };
+
+    // Backward compatibility alias for residual old bundle references
+    const normalizedAITust = normalizedAITrust;
+
+    const normalizedSeller = {
+      ...sellerData,
+      id: sellerData?.seller_id || sellerData?.sellerId || sellerData?.id || sellerId,
+      seller_id: sellerData?.seller_id || sellerData?.id || sellerId,
+    };
+
+    const payload = { seller: normalizedSeller, aiTrust: normalizedAITrust };
+
     // 3. Write payload directly to the permanent App memory bank
-    setCache(prev => ({ ...prev, [sellerId]: payload }));
-    
+    setCache((prev) => ({ ...prev, [sellerId]: payload }));
+
     return payload;
   }, [cache]);
 

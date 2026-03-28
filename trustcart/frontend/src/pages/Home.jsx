@@ -1,15 +1,12 @@
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Zap, Star } from 'lucide-react';
 import TrustScore from '@components/TrustScore';
-
-const MOCK_PRODUCTS = [
-  { id: '1', name: 'Acoustic Noise Cancelling Headphones', price: 299.99, rating: 4.8, reviews: 124, trustScore: 98, seller: 'AudioTech Pro', category: 'Electronics', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80' },
-  { id: '2', name: 'Minimalist Smartwatch Series X', price: 199.50, rating: 4.5, reviews: 89, trustScore: 72, seller: 'GadgetHub', category: 'Wearables', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' },
-  { id: '3', name: 'Mechanical Keyboard RGB Custom', price: 149.00, rating: 4.9, reviews: 342, trustScore: 85, seller: 'KeyMasters', category: 'Computers', image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&q=80' },
-  { id: '4', name: 'Ultra-slim 4K Portable Monitor', price: 329.00, rating: 4.2, reviews: 56, trustScore: 42, seller: 'TechOrbit', category: 'Displays', image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&q=80' },
-];
+import { useProducts } from '@hooks/useProducts';
 
 export default function Home() {
+  const { data: pageData, isLoading } = useProducts({ limit: 4, is_featured: true });
+  const products = Array.isArray(pageData) ? pageData : pageData?.items || [];
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Hero Section */}
@@ -66,53 +63,61 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {MOCK_PRODUCTS.map((product) => (
-            <Link key={product.id} to={`/products/${product.id}`} className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
-              
-              {/* Trust Badge overlay */}
-              <TrustScore 
-                score={product.trustScore} 
-                variant="badge" 
-                className="absolute top-3 right-3 z-10"
-              />
-
-              {/* Product Image */}
-              <div className="w-full h-48 bg-gray-100 overflow-hidden">
-                <img 
-                  src={product.image} 
-                  alt={product.name}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-
-              {/* Product Info */}
-              <div className="p-5 space-y-3">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={product.name}>
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    by <span className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">{product.seller}</span>
-                  </p>
-                </div>
+          {isLoading ? (
+            <div className="col-span-full flex justify-center items-center py-10">
+              <span className="text-gray-500">Loading products...</span>
+            </div>
+          ) : products.length > 0 ? (
+            products.map((product) => (
+              <Link key={product.id} to={`/products/${product.id}`} className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
                 
-                <div className="flex items-center gap-2 text-sm text-yellow-500">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="font-bold text-gray-700 dark:text-gray-300">{product.rating}</span>
-                  <span className="text-gray-400">({product.reviews})</span>
+                {/* Trust Badge overlay */}
+                <TrustScore 
+                  score={product.trustScore || product.trust_score} 
+                  variant="badge" 
+                  className="absolute top-3 right-3 z-10"
+                />
+
+                {/* Product Image */}
+                <div className="w-full h-48 bg-gray-100 overflow-hidden">
+                  <img 
+                    src={product.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80'} 
+                    alt={product.name}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
 
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-xl font-bold text-gray-900 dark:text-white">
-                    ${product.price.toFixed(2)}
-                  </span>
-                  <button className="px-3 py-1.5 bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                    Add
-                  </button>
+                {/* Product Info */}
+                <div className="p-5 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={product.name}>
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {product.category}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-yellow-500">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span className="font-bold text-gray-700 dark:text-gray-300">{product.rating}</span>
+                    <span className="text-gray-400">({product.review_count})</span>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between">
+                    <span className="text-xl font-bold text-gray-900 dark:text-white">
+                      ${(product.discounted_price || product.price).toFixed(2)}
+                    </span>
+                    <button className="px-3 py-1.5 bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                      View
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-500 py-10">No trending products found.</div>
+          )}
         </div>
       </section>
     </div>

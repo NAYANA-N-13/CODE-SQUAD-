@@ -26,7 +26,11 @@ export default function Register() {
       // Navigate to the Dashboard inherently secure
       navigate('/'); 
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
+      if (err.errors && Array.isArray(err.errors)) {
+        setError(err.errors.map(e => e.message).join(' | '));
+      } else {
+        setError(err.detail || err.message || 'Registration failed. Please verify your credentials or ensure the server is running.');
+      }
     } finally {
       setIsLoading(false);
     }

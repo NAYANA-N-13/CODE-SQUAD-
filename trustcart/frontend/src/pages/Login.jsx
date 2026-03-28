@@ -24,7 +24,11 @@ export default function Login() {
       // Navigate to the Dashboard after JWT is stored locally
       navigate('/'); 
     } catch (err) {
-      setError(err.message || 'Login failed. Please verify your credentials.');
+      if (err.errors && Array.isArray(err.errors)) {
+        setError(err.errors.map(e => e.message).join(' | '));
+      } else {
+        setError(err.detail || err.message || 'Login failed. Please verify your credentials or ensure the server is running.');
+      }
     } finally {
       setIsLoading(false);
     }
